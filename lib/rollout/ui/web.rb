@@ -27,6 +27,14 @@ module Rollout::UI
       end
     end
 
+    get '/export.json' do
+      rollout = config.get(:instance)
+      features = rollout.features.sort_by(&:downcase)
+      content_type 'application/json'
+      attachment "all_features_#{Time.now.to_i}.json"
+      json(features.map { |feature| feature_to_hash(rollout.get(feature)) })
+    end
+
     get '/features/new' do
       slim :'features/new'
     end

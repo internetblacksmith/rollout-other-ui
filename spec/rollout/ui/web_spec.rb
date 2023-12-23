@@ -81,6 +81,33 @@ RSpec.describe 'Web UI' do
     expect(last_response.body).to include('Rollout UI') & include("&amp;#x27;+alert(1)+&amp;#x27;")
   end
 
+  it "exports all the features as json" do
+    ROLLOUT.activate(:fake_test_feature_for_rollout_ui_webspec)
+    ROLLOUT.activate(:fake_test_feature_for_rollout_ui_webspec_2)
+    header 'Accept', 'application/json'
+
+    get '/export.json'
+
+    expect(last_response).to be_ok
+    expect(last_response.headers).to include('Content-Type' => 'application/json')
+    response = JSON.parse(last_response.body)
+    first_feature = {
+      "data"=>{},
+      "groups"=>[],
+      "name"=>"fake_test_feature_for_rollout_ui_webspec",
+      "percentage"=>100.0
+    }
+    second_feature = {
+      "data"=>{},
+      "groups"=>[],
+      "name"=>"fake_test_feature_for_rollout_ui_webspec_2",
+      "percentage"=>100.0
+    }
+    expect(response).to include(first_feature, second_feature)
+    ROLLOUT.delete(:fake_test_feature_for_rollout_ui_webspec)
+    ROLLOUT.delete(:fake_test_feature_for_rollout_ui_webspec_2)
+  end
+
   it "renders show html" do
     get '/features/test'
 

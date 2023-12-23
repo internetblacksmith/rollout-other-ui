@@ -12,6 +12,10 @@ module Rollout::UI
     def index_path
       "#{request.script_name}/"
     end
+    
+    def export_features_path
+      "#{request.script_name}/export.json"
+    end
 
     def new_feature_path
       "#{request.script_name}/features/new"
