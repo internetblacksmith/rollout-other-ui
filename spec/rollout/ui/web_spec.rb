@@ -29,7 +29,8 @@ RSpec.describe 'Web UI' do
       "data"=>{},
       "groups"=>[],
       "name"=>"fake_test_feature_for_rollout_ui_webspec",
-      "percentage"=>100.0
+      "percentage"=>100.0,
+      "users"=>""
     }
     expect(response).to include(expected_response)
     ROLLOUT.delete(:fake_test_feature_for_rollout_ui_webspec)
@@ -51,7 +52,8 @@ RSpec.describe 'Web UI' do
       "data" => {},
       "groups" => ["fake_group"],
       "name" => "fake_test_feature_for_rollout_ui_webspec",
-      "percentage" => 0.0
+      "percentage" => 0.0,
+      "users" => "fake_user"
     }
     header 'Accept', 'application/json'
     get '/?user=fake_user'
@@ -95,20 +97,88 @@ RSpec.describe 'Web UI' do
       "data"=>{},
       "groups"=>[],
       "name"=>"fake_test_feature_for_rollout_ui_webspec",
-      "percentage"=>100.0
+      "percentage"=>100.0,
+      "users"=>""
     }
     second_feature = {
       "data"=>{},
       "groups"=>[],
       "name"=>"fake_test_feature_for_rollout_ui_webspec_2",
-      "percentage"=>100.0
+      "percentage"=>100.0,
+      "users"=>""
     }
     expect(response).to include(first_feature, second_feature)
     ROLLOUT.delete(:fake_test_feature_for_rollout_ui_webspec)
     ROLLOUT.delete(:fake_test_feature_for_rollout_ui_webspec_2)
   end
 
-  it "renders show html" do
+  it "renders the import page" do
+    get "/import"
+
+    expect(last_response).to be_ok
+    expect(last_response.body)
+      .to include("Warning: Importing this file will replace any existing features with the same name.")
+  end
+
+  it "imports features from a json file" do
+    ROLLOUT.with_feature(:old_feature) do |feature|
+      feature.percentage = 49.5
+      feature.groups = [:old_group]
+      feature.users = ["old_user"]
+      feature.data.update(description: "old description")
+      feature.data.update(updated_at: 1_703_948_574)
+    end
+    
+    ROLLOUT.with_feature(:overridden_feature) do |feature|
+      feature.percentage = 27.0
+      feature.groups = [:old_overriden_group]
+      feature.users = ["old_overriden_user"]
+      feature.data.update(description: "old description")
+      feature.data.update(updated_at: 1_703_948_000)
+    end
+
+    fixture_path = File.expand_path("../fixtures/features.json", __dir__)
+    post "/import", features: Rack::Test::UploadedFile.new(fixture_path, "application/json")
+
+    expect(ROLLOUT.get(:old_feature).to_hash).to eq(
+      {
+        data: {
+          "description" => "old description",
+          "updated_at" => 1_703_948_574
+        },
+        groups: [:old_group],
+        percentage: 49.5,
+        users: ["old_user"]
+      }
+    )
+    expect(ROLLOUT.get(:new_feature).to_hash).to match(
+      {
+        data: {
+          "description" => "New Feature",
+          "updated_at" => a_kind_of(Integer)
+        },
+        groups: [:new_group],
+        percentage: 12.0,
+        users: ["first_new_user", "second_new_user"]
+      }
+    )
+    expect(ROLLOUT.get(:overridden_feature).to_hash).to match(
+      {
+        data: {
+          "description" => "New overridden Feature description",
+          "updated_at" => a_kind_of(Integer)
+      },
+        groups: [:new_overriden_group],
+        percentage: 100.0,
+        users: ["new_overriden_user"]
+    })
+
+    ROLLOUT.delete(:old_feature)
+    ROLLOUT.delete(:new_feature)
+    ROLLOUT.delete(:overridden_feature)
+  end
+
+  it 'renders show html' do
     get '/features/test'
 
     expect(last_response).to be_ok
@@ -135,7 +205,8 @@ RSpec.describe 'Web UI' do
       "data"=>{},
       "groups"=>[],
       "name"=>"fake_test_feature_for_rollout_ui_webspec",
-      "percentage"=>100.0
+      "percentage"=>100.0,
+      "users"=>""
     }
     expect(expected_response).to eq response
 

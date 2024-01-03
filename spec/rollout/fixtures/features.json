@@ -1,0 +1,21 @@
+[
+  {
+    "data":{
+      "description":"New Feature",
+      "updated_at":1703817031
+    },
+    "groups":["new_group"],
+    "name":"new_feature",
+    "percentage":12,
+    "users":"first_new_user,second_new_user"
+  },{
+    "data":{
+      "description":"New overridden Feature description",
+      "updated_at":1703816457
+    },
+    "groups":["new_overriden_group"],
+    "name":"overridden_feature",
+    "percentage":100,
+    "users":"new_overriden_user"
+  }
+]

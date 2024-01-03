@@ -35,6 +35,33 @@ module Rollout::UI
       json(features.map { |feature| feature_to_hash(rollout.get(feature)) })
     end
 
+    get "/import" do
+      slim :'features/import'
+    end
+
+    post "/import" do
+      file = params.fetch("features", {}).fetch("tempfile", nil)
+      redirect to("#{back}?error=Missing file") unless file
+      begin
+        features = JSON.parse(file.read, symbolize_names: true)
+      rescue JSON::ParserError
+        redirect to("#{back}?error=Invalid JSON file")
+      end
+
+      redirect to("#{back}?error=No features found") unless features.is_a?(Array)
+
+      rollout = config.get(:instance)
+      actor = config.get(:actor, scope: self)
+
+      with_rollout_context(rollout, actor:) do
+        features.each do |feature|
+          upsert_feature(rollout, feature)
+        end
+      end
+
+      redirect index_path
+    end
+
     get '/features/new' do
       slim :'features/new'
     end
@@ -61,16 +88,8 @@ module Rollout::UI
       if feature_data['updated_at'] && params[:last_updated_at].to_s != feature_data['updated_at'].to_s
         redirect "#{feature_path(params[:feature_name])}?error=Rollout version outdated. Review changes below and try again."
       end
-      with_rollout_context(rollout, actor: actor) do
-        rollout.with_feature(params[:feature_name]) do |feature|
-          feature.percentage = params[:percentage].to_f.clamp(0.0, 100.0)
-          feature.groups = (params[:groups] || []).reject(&:empty?).map(&:to_sym)
-          if params[:users]
-            feature.users = params[:users].split(',').map(&:strip).uniq.sort
-          end
-          feature.data.update(description: params[:description])
-          feature.data.update(updated_at: Time.now.to_i)
-        end
+      with_rollout_context(rollout, actor:) do
+        upsert_feature(rollout, params)
       end
 
       redirect feature_path(params[:feature_name])

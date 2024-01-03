@@ -3,6 +3,9 @@ h2.font-semibold.text-xl.text-gray-500.pt-12.flex.items-center
     | Features
     span.text-sm.p-1.bg-gray-100.ml-1.rounded-sm.font-bold.leading-none #{@features.count}
 
+  form.flex-none action=import_features_path method='GET'
+    button.text-sm.text-gray-600.p-3.bg-gray-100.ml-1.rounded-sm.font-bold.leading-none.transition-colors.duration-150(class='hover:bg-gray-200' type='submit')
+      ' Import Features
   form.flex-none action=export_features_path method='GET'
     button.text-sm.text-gray-600.p-3.bg-gray-100.ml-1.rounded-sm.font-bold.leading-none.transition-colors.duration-150(class='hover:bg-gray-200' type='submit')
       ' Export All Features

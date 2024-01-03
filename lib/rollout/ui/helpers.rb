@@ -17,6 +17,10 @@ module Rollout::UI
       "#{request.script_name}/export.json"
     end
 
+    def import_features_path
+      "#{request.script_name}/import"
+    end
+
     def new_feature_path
       "#{request.script_name}/features/new"
     end
@@ -109,12 +113,23 @@ module Rollout::UI
         data: feature.data,
         groups: feature.groups,
         name: feature.name,
+        users: feature.users.join(","),
         percentage: feature.percentage
       }
     end
 
     def sanitized_name(feature_name)
       Rack::Utils.escape_html(feature_name)
+    end
+
+    def upsert_feature(rollout, params)
+      rollout.with_feature(params[:name] || params[:feature_name]) do |feature|
+        feature.percentage = params[:percentage].to_f.clamp(0.0, 100.0)
+        feature.groups = (params[:groups] || []).reject(&:empty?).map(&:to_sym)
+        feature.users = params[:users].split(',').map(&:strip).uniq.sort if params[:users]
+        feature.data.update(description: params.dig(:description) || params.dig(:data, :description))
+        feature.data.update(updated_at: Time.now.to_i)
+      end
     end
   end
 end
